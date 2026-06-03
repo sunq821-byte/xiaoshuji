@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git rev-list *)",
+      "Bash(git cat-file *)",
+      "Bash(awk '/^blob/ {print $3, $4}')",
+      "Bash(git lfs *)"
+    ]
+  }
+}
