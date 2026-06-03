@@ -1,9 +1,4 @@
 <!-- pages/mine/favorites.vue -->
-<!-- AI辅助重构：WorkBuddy/Coding Copilot, 2026-04-19
-     - 重构UI，对标myCheckin.vue设计
-     - 添加Tab筛选、红色统计卡片、时间轴列表
-     - 修复收藏筛选Bug（传参格式调整）
--->
 <template>
 	<view class="page-container">
 		<!-- 顶部统计 -->

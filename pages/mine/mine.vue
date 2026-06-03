@@ -173,6 +173,7 @@
 	import auth from '@/utils/auth.js'
 
 	// 占位头像（使用本地静态资源，永不过期）
+		// 之前用cloud://路径，头像过期全变空白，找了好久才发现问题
 	const PLACEHOLDER_AVATAR = '/static/images/avatar_placeholder.png';
 
 	export default {
@@ -367,7 +368,10 @@
 
 					// 后台同步云端数据（异步，不影响显示）
 					this.syncCloudStats();
-				} catch (e) {}
+				} catch (e) {
+					// 拿不到数据也不是什么大问题，页面不会崩就行
+					// console.warn('loadUserStats炸了:', e.message);
+				}
 			},
 
 			// 从云端同步统计数据

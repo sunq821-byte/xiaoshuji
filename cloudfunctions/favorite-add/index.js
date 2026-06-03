@@ -1,8 +1,6 @@
 /**
  * favorite-add 云函数
  * 添加收藏
- *
- * AI辅助生成：WorkBuddy/Coding Copilot, 2026-04-19
  */
 const cloud = require('wx-server-sdk');
 

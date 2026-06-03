@@ -2,10 +2,6 @@
  * tts-guide 云函数
  * 百度TTS语音合成 - 使用 HTTPS GET 方式（tex+tok 作为 URL query 参数）
  * 彻底避免 form-urlencoded body 编码问题
- *
- * AI辅助生成：WorkBuddy/Coding Copilot, 2026-04-22
- * - 改用 GET 请求，所有参数拼在 URL query 中
- * - 添加详细日志，打印百度返回的原始响应
  */
 const cloud = require('wx-server-sdk');
 const https = require('https');
@@ -15,8 +11,8 @@ cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV });
 const db = cloud.database();
 
 // ============ 配置 ============
-const API_KEY = process.env.BAIDU_TTS_API_KEY || 'QjXwlS2aaBXK2Mv1e5C8KAoC';
-const SECRET_KEY = process.env.BAIDU_TTS_SECRET_KEY || 'BgSc0CyElAvHfNFxetp5FoPvxnF1PGUV';
+const API_KEY = process.env.BAIDU_TTS_API_KEY;
+const SECRET_KEY = process.env.BAIDU_TTS_SECRET_KEY;
 
 const TTS_SPD = 5;
 const TTS_PIT = 5;

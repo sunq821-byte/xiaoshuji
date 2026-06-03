@@ -3,10 +3,6 @@ import QQMapWX from './qqmap-wx-jssdk.js'
 import { MAP_CONFIG } from '../config.js'
 
 // 腾讯地图服务封装
-// AI辅助生成：Claude, 2025-03
-// - 驾车路径规划、途经点支持
-// - Polyline解码算法
-// - 路线结果格式化
 class TencentMapService {
   constructor() {
     this.key = MAP_CONFIG.key

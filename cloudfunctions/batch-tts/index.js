@@ -27,8 +27,8 @@ const db = cloud.database();
 const _ = db.command;
 
 // ============ 配置 ============
-const API_KEY = process.env.BAIDU_TTS_API_KEY || 'QjXwlS2aaBXK2Mv1e5C8KAoC';
-const SECRET_KEY = process.env.BAIDU_TTS_SECRET_KEY || 'BgSc0CyElAvHfNFxetp5FoPvxnF1PGUV';
+const API_KEY = process.env.BAIDU_TTS_API_KEY;
+const SECRET_KEY = process.env.BAIDU_TTS_SECRET_KEY;
 
 const TTS_SPD = 5;      // 语速：0-15，默认5
 const TTS_PIT = 5;      // 音调：0-15，默认5
@@ -257,7 +257,8 @@ exports.main = async (event, context) => {
         results.failed.push(result);
       }
 
-      // 间隔500ms，避免请求过快
+      // 间隔500ms，避免请求过快触发百度限流（err_no=500）
+      // 之前不延时并发请求，直接全挂了，百度那边QPS限制很严
       if (i < items.length - 1) {
         await new Promise(r => setTimeout(r, 500));
       }

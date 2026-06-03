@@ -1,13 +1,13 @@
 /**
- * 配置文件 - 集中管理所有敏感信息和配置
- * AI辅助生成：WorkBuddy/Coding Copilot, 2026-04-08
- * - 重构配置结构，集中管理云环境、地图Key、TTS配置
- * 请勿将此文件提交到公开仓库！
+ * 全局配置文件
+ *
+ * 注意：真实的 Key 请放在 config.local.js 中（不会被 git 追踪）
+ * config.local.js 格式与下方完全一致，只是填上真实值即可
  */
 
 // ============== 云开发配置 ==============
 export const CLOUD_CONFIG = {
-  // 云开发环境ID
+  // 云开发环境ID（在微信公众平台 → 云开发 → 设置 中查看）
   env: 'cloud1-7gabd815fd2c236e',
   // 是否启用云开发
   enabled: true
@@ -15,11 +15,11 @@ export const CLOUD_CONFIG = {
 
 // ============== 腾讯地图配置 ==============
 export const MAP_CONFIG = {
-  // 腾讯地图 Key（请在腾讯位置服务官网申请）
-  key: 'NV7BZ-KHFCV-S4SPF-5ULSS-OVVNT-D4FMA',
+  // 腾讯地图 Key（https://lbs.qq.com/ 申请"微信小程序JavaScriptSDK"）
+  key: 'your-tencent-map-key',
   // 地图默认缩放级别
   defaultZoom: 12,
-  // 打卡范围（米）
+  // 打卡范围（米），之前调试时试过300米，太严格了，500刚好
   checkinRadius: 500,
   // 定位模式：gcj02 为国测局坐标（国内标准）
   coordType: 'gcj02'
@@ -27,20 +27,21 @@ export const MAP_CONFIG = {
 
 // ============== 百度语音合成配置 ==============
 export const TTS_CONFIG = {
-  // 是否启用语音导览
+  // 是否启用语音导览（上线前检查这里是不是true，忘了关会扣配额）
   enabled: true,
-  // 百度云密钥（从 https://ai.baidu.com/tech/speech/tts 获取）
-  apiKey: 'QjXwlS2aaBXK2Mv1e5C8KAoC',
-  secretKey: 'BgSc0CyElAvHfNFxetp5FoPvxnF1PGUV',
-  // 默认语速 (0-15)
+  // 百度云密钥（去 https://console.bce.baidu.com/ai 创建应用获取）
+  apiKey: 'your-baidu-tts-api-key',
+  secretKey: 'your-baidu-tts-secret-key',
+  // 默认语速 (0-15)，5是正常语速，试过7有点快
   spd: 5,
   // 默认音调 (0-15)
   pit: 5,
   // 默认音量 (0-15)
   vol: 5,
-  // 默认发音人：0为女声，1为男声，3为情感男声，4为情感女声
+  // 默认发音人：0=女声，1=男声，3=度逍遥，4=度丫丫，7=四川话女声
+  // TODO: 后续可以考虑让用户自己选发音人
   per: 0,
-  // 语音文本最大字符数
+  // 语音文本最大字符数，百度免费版限制512字符
   maxTextLength: 500
 }
 
@@ -98,11 +99,11 @@ export const CLOUD_FUNCTIONS = {
   // 打卡相关
   checkinSubmit: 'checkin-submit',
   checkLocation: 'checkLocation',
-  addCheckin: 'addCheckin',
   getMyCheckin: 'getMyCheckin',
   
   // 语音相关
   ttsGuide: 'tts-guide',
+  batchTts: 'batch-tts',
   
   // 位置相关
   geoReverse: 'geo-reverse',

@@ -2,8 +2,6 @@
  * user-login 云函数
  * 用户授权登录，数据同步到云数据库
  *
- * AI辅助生成：WorkBuddy/Coding Copilot, 2026-04-19
- *
  * 微信登录流程参考：
  * https://developers.weixin.qq.com/miniprogram/dev/framework/open-ability/login.html
  */

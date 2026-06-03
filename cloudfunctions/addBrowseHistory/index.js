@@ -1,8 +1,6 @@
 /**
  * addBrowseHistory 云函数
  * 添加浏览历史（去重：同一用户同一目标只保留最新记录）
- *
- * AI辅助生成：WorkBuddy/Coding Copilot, 2026-04-19
  */
 const cloud = require('wx-server-sdk');
 

@@ -3,7 +3,6 @@
  * 微信云开发调用封装
  * 统一处理错误、loading、重试逻辑
  *
- * AI辅助生成：WorkBuddy/Coding Copilot, 2026-04-08
  * - 添加getTempFileURL批量处理和超时控制
  * - 添加processImageFields云存储图片字段自动转换
  * - 优化错误处理逻辑
@@ -143,6 +142,8 @@ export async function uploadFile(localPath, dirPath = 'uploads') {
  * @param {string} keyword
  * @param {string[]} fields
  */
+// TODO: 模糊搜索目前只支持全词匹配，后续考虑加拼音搜索
+// 四川话发音的"yan"和"ran"这种也要处理
 export function buildSearchCondition(keyword, fields = ['name', 'brief', 'category', 'location']) {
 	const db = wx.cloud.database();
 	const regexp = db.RegExp({ regexp: keyword, options: 'i' });
@@ -151,7 +152,6 @@ export function buildSearchCondition(keyword, fields = ['name', 'brief', 'catego
 
 /**
  * 获取云存储图片的临时链接（带超时处理）
- * AI辅助生成：WorkBuddy/Coding Copilot, 2026-04-11
  * - 添加批量处理和分批请求逻辑
  * - 添加Promise.race超时控制
  * @param {string|string[]} fileID - 云存储文件ID（cloud://开头）或文件ID数组
@@ -159,6 +159,7 @@ export function buildSearchCondition(keyword, fields = ['name', 'brief', 'catego
  * @returns {Promise<string|string[]>} 临时链接
  */
 export async function getTempFileURL(fileID, timeout = 5000) {
+		// 这个timeout值调了好几次，3秒太短老超时，8秒又太长用户等不及，5秒刚好
 	if (!fileID) return '';
 	
 	// 如果是数组，批量处理
@@ -215,7 +216,6 @@ export async function getTempFileURL(fileID, timeout = 5000) {
 
 /**
  * 处理数据中的云存储图片字段（带超时处理）
- * AI辅助生成：WorkBuddy/Coding Copilot, 2026-04-11
  * - 支持单图和数组字段批量转换
  * - 添加分批处理避免云存储API超时
  * @param {object} data - 数据对象

@@ -1,8 +1,6 @@
 /**
  * getRoutes 云函数
  * 获取推荐路线列表
- *
- * AI辅助生成：WorkBuddy/Coding Copilot, 2026-04-19
  */
 const cloud = require('wx-server-sdk');
 

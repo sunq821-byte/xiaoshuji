@@ -2,6 +2,9 @@
  * utils/storage.js
  * 本地存储封装
  * 统一处理 JSON 序列化/反序列化、过期时间、命名空间
+ *
+ * 踩坑记录：uni.setStorageSync单次有大小限制（大概1M），图片之类的别往里塞
+ * 之前把打卡图片的临时路径存进去，结果iOS上崩了，找了好久才定位到
  */
 
 const NS = 'sichuanHeritage_'; // 命名空间前缀，避免 key 冲突

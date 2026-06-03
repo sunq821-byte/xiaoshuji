@@ -1,0 +1,1749 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>小蜀记 — 四川非遗文旅数字导览系统</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@200;300;400;500;600;700;900&family=ZCOOL+XiaoWei&family=Ma+Shan+Zheng&family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
+<style>
+/* ========== CSS Custom Properties ========== */
+:root {
+  --paper: #F5F0E8;
+  --paper-dark: #EDE5D8;
+  --ink: #1A1A1A;
+  --ink-light: #3A3A3A;
+  --ink-mid: #5C5C5C;
+  --ink-faint: #9C9488;
+  --cinnabar: #C03C30;
+  --cinnabar-dark: #8B1A10;
+  --indigo: #2B4570;
+  --indigo-light: #4A6B9A;
+  --gold: #C8A951;
+  --jade: #5B8C6A;
+  --white-ink: #F5F0E8;
+  --seal-red: #B22222;
+  --shadow: rgba(26,26,26,0.08);
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+html, body {
+  width: 100%; height: 100%;
+  overflow: hidden;
+  font-family: 'Noto Serif SC', 'SimSun', serif;
+  background: var(--paper);
+  color: var(--ink);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ========== Paper Texture Overlay ========== */
+body::before {
+  content: '';
+  position: fixed; inset: 0;
+  background:
+    radial-gradient(ellipse at 20% 50%, rgba(200,169,81,0.04) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 30%, rgba(139,26,16,0.03) 0%, transparent 40%),
+    radial-gradient(ellipse at 50% 80%, rgba(43,69,112,0.03) 0%, transparent 45%);
+  pointer-events: none;
+  z-index: 9999;
+}
+
+/* ========== Ink Canvas (background particles) ========== */
+#ink-canvas {
+  position: fixed; inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.6;
+}
+
+/* ========== Presentation Container ========== */
+.presentation {
+  position: relative;
+  width: 100vw; height: 100vh;
+  overflow: hidden;
+}
+
+/* ========== Slide Base ========== */
+.slide {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 80px;
+  opacity: 0;
+  transform: translateX(60px);
+  transition: opacity 0.8s cubic-bezier(0.25,0.1,0.25,1), transform 0.8s cubic-bezier(0.25,0.1,0.25,1);
+  z-index: 1;
+  will-change: opacity, transform;
+}
+.slide.active {
+  opacity: 1;
+  transform: translateX(0);
+  z-index: 2;
+}
+.slide.prev {
+  opacity: 0;
+  transform: translateX(-60px);
+  z-index: 1;
+}
+
+.slide-inner {
+  position: relative;
+  width: 100%; height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  z-index: 2;
+}
+
+/* ========== Typography ========== */
+.s-title {
+  font-family: 'Ma Shan Zheng', 'ZCOOL XiaoWei', cursive;
+  font-size: clamp(2.4rem, 4.5vw, 4.2rem);
+  line-height: 1.3;
+  letter-spacing: 0.05em;
+  color: var(--ink);
+}
+.s-subtitle {
+  font-family: 'Noto Serif SC', serif;
+  font-size: clamp(1rem, 1.8vw, 1.4rem);
+  font-weight: 300;
+  color: var(--ink-mid);
+  letter-spacing: 0.08em;
+  margin-top: 8px;
+}
+.s-body {
+  font-family: 'Noto Sans SC', 'Noto Serif SC', sans-serif;
+  font-size: clamp(0.85rem, 1.3vw, 1.05rem);
+  font-weight: 300;
+  line-height: 1.85;
+  color: var(--ink-light);
+}
+.s-label {
+  font-family: 'ZCOOL XiaoWei', serif;
+  font-size: clamp(0.7rem, 1vw, 0.85rem);
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--cinnabar);
+}
+.s-number {
+  font-family: 'ZCOOL XiaoWei', serif;
+  font-size: clamp(4rem, 8vw, 7rem);
+  font-weight: 400;
+  color: var(--paper);
+  -webkit-text-stroke: 1.5px var(--ink-faint);
+  line-height: 1;
+}
+.s-big-number {
+  font-family: 'Ma Shan Zheng', cursive;
+  font-size: clamp(5rem, 12vw, 10rem);
+  color: var(--cinnabar);
+  line-height: 1;
+  opacity: 0.15;
+  position: absolute;
+}
+
+/* ========== Vertical Text ========== */
+.vertical-text {
+  writing-mode: vertical-rl;
+  font-family: 'Ma Shan Zheng', cursive;
+  font-size: clamp(1rem, 1.5vw, 1.3rem);
+  letter-spacing: 0.3em;
+  color: var(--ink-faint);
+}
+
+/* ========== Ink Brush Divider ========== */
+.ink-divider {
+  width: 80px; height: 3px;
+  background: linear-gradient(90deg, var(--cinnabar), transparent);
+  border-radius: 2px;
+  margin: 16px 0;
+}
+.ink-divider-long {
+  width: 120px; height: 2px;
+  background: linear-gradient(90deg, var(--ink), transparent);
+  opacity: 0.3;
+  margin: 20px 0;
+}
+
+/* ========== Seal / Stamp ========== */
+.seal {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 64px; height: 64px;
+  border: 3px solid var(--seal-red);
+  border-radius: 4px;
+  font-family: 'Ma Shan Zheng', cursive;
+  font-size: 1.2rem;
+  color: var(--seal-red);
+  transform: rotate(-8deg);
+  opacity: 0.85;
+  position: relative;
+}
+.seal::before {
+  content: '';
+  position: absolute; inset: 3px;
+  border: 1px solid var(--seal-red);
+  border-radius: 2px;
+  opacity: 0.4;
+}
+.seal-sm { width: 44px; height: 44px; font-size: 0.85rem; }
+
+/* ========== Cards ========== */
+.ink-card {
+  background: rgba(245,240,232,0.8);
+  border: 1px solid rgba(26,26,26,0.08);
+  border-radius: 2px;
+  padding: 28px 24px;
+  position: relative;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+.ink-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(26,26,26,0.06);
+}
+.ink-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0;
+  width: 3px; height: 100%;
+  background: var(--cinnabar);
+  border-radius: 2px 0 0 2px;
+}
+
+/* ========== Grid Layouts ========== */
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 32px; }
+.grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
+.grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; }
+.flex-col { display: flex; flex-direction: column; gap: 16px; }
+.flex-row { display: flex; align-items: center; gap: 16px; }
+.flex-between { display: flex; justify-content: space-between; align-items: center; }
+
+/* ========== Bar Chart ========== */
+.bar-row { display: flex; align-items: center; gap: 16px; margin-bottom: 14px; }
+.bar-label { width: 120px; text-align: right; font-size: 0.9rem; color: var(--ink-mid); font-weight: 400; }
+.bar-track { flex: 1; height: 28px; background: rgba(26,26,26,0.04); border-radius: 2px; overflow: hidden; position: relative; }
+.bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--indigo), var(--indigo-light));
+  border-radius: 2px;
+  width: 0;
+  transition: width 1.2s cubic-bezier(0.25,0.1,0.25,1);
+  position: relative;
+}
+.bar-fill::after {
+  content: '';
+  position: absolute; right: 0; top: 0; bottom: 0; width: 4px;
+  background: var(--cinnabar);
+  border-radius: 0 2px 2px 0;
+}
+.bar-value {
+  position: absolute; right: 8px; top: 50%; transform: translateY(-50%);
+  font-size: 0.8rem; font-weight: 500; color: var(--ink);
+}
+
+/* ========== Progress Bar ========== */
+.progress-bar-container {
+  position: fixed;
+  bottom: 0; left: 0; right: 0;
+  height: 3px;
+  background: rgba(26,26,26,0.05);
+  z-index: 100;
+  cursor: pointer;
+}
+.progress-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--cinnabar), var(--gold));
+  transition: width 0.6s cubic-bezier(0.25,0.1,0.25,1);
+  border-radius: 0 2px 2px 0;
+  position: relative;
+}
+.progress-bar-fill::after {
+  content: '';
+  position: absolute; right: -3px; top: -2px;
+  width: 7px; height: 7px;
+  background: var(--cinnabar);
+  border-radius: 50%;
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+.progress-bar-container:hover .progress-bar-fill::after {
+  opacity: 1;
+}
+
+/* ========== Chapter Label ========== */
+.chapter-label {
+  position: fixed;
+  bottom: 12px; left: 40px;
+  font-family: 'ZCOOL XiaoWei', serif;
+  font-size: 0.72rem;
+  color: var(--ink-faint);
+  letter-spacing: 0.2em;
+  z-index: 100;
+  transition: opacity 0.4s;
+}
+
+/* ========== Navigation Dots ========== */
+.nav-dots {
+  position: fixed;
+  right: 32px; top: 50%;
+  transform: translateY(-50%);
+  display: flex; flex-direction: column; gap: 10px;
+  z-index: 100;
+}
+.nav-dot {
+  width: 8px; height: 8px;
+  border: 1.5px solid var(--ink-faint);
+  border-radius: 50%;
+  background: transparent;
+  cursor: pointer;
+  transition: all 0.4s ease;
+  position: relative;
+}
+.nav-dot.active {
+  background: var(--cinnabar);
+  border-color: var(--cinnabar);
+  transform: scale(1.3);
+}
+.nav-dot-group-label {
+  font-family: 'ZCOOL XiaoWei', serif;
+  font-size: 0.6rem;
+  color: var(--ink-faint);
+  letter-spacing: 0.15em;
+  text-align: right;
+  margin-bottom: 4px;
+  margin-top: 8px;
+  opacity: 0.6;
+  user-select: none;
+}
+.nav-dot-group-label:first-child {
+  margin-top: 0;
+}
+
+/* ========== Page Counter ========== */
+.page-counter {
+  position: fixed;
+  bottom: 12px; right: 40px;
+  font-family: 'ZCOOL XiaoWei', serif;
+  font-size: 0.8rem;
+  color: var(--ink-faint);
+  letter-spacing: 0.15em;
+  z-index: 100;
+}
+
+/* ========== Shortcuts Panel ========== */
+.shortcuts-panel {
+  position: fixed;
+  bottom: 40px; right: 40px;
+  background: var(--paper);
+  border: 1px solid rgba(26,26,26,0.1);
+  border-radius: 4px;
+  padding: 20px 24px;
+  z-index: 200;
+  opacity: 0;
+  transform: translateY(10px);
+  pointer-events: none;
+  transition: opacity 0.3s, transform 0.3s;
+  box-shadow: 0 8px 32px rgba(26,26,26,0.08);
+  min-width: 220px;
+}
+.shortcuts-panel.visible {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+.shortcuts-panel h4 {
+  font-family: 'ZCOOL XiaoWei', serif;
+  font-size: 0.8rem;
+  color: var(--ink-mid);
+  letter-spacing: 0.15em;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(26,26,26,0.06);
+}
+.shortcut-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+}
+.shortcut-row:last-child { margin-bottom: 0; }
+.shortcut-key {
+  font-family: 'Courier New', monospace;
+  font-size: 0.72rem;
+  background: rgba(26,26,26,0.06);
+  padding: 2px 8px;
+  border-radius: 3px;
+  color: var(--ink-mid);
+  border: 1px solid rgba(26,26,26,0.08);
+}
+.shortcut-desc {
+  font-size: 0.72rem;
+  color: var(--ink-faint);
+}
+
+/* ========== Ink Transition Canvas Overlay ========== */
+#inkTransitionCanvas {
+  position: fixed; inset: 0;
+  z-index: 50;
+  pointer-events: none;
+}
+
+/* ========== Click Navigation Zones ========== */
+.click-zone {
+  position: fixed;
+  top: 0; bottom: 0;
+  width: 20%;
+  z-index: 40;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.25s;
+  display: flex;
+  align-items: center;
+}
+.click-zone:hover { opacity: 1; }
+.click-zone-prev {
+  left: 0;
+  justify-content: flex-start;
+  padding-left: 20px;
+  background: linear-gradient(to right, rgba(26,26,26,0.06), transparent);
+}
+.click-zone-next {
+  right: 0;
+  justify-content: flex-end;
+  padding-right: 20px;
+  background: linear-gradient(to left, rgba(26,26,26,0.06), transparent);
+}
+.click-zone-prev.disabled,
+.click-zone-next.disabled {
+  cursor: default;
+  pointer-events: none;
+}
+.click-zone-arrow {
+  width: 40px; height: 40px;
+  border-radius: 50%;
+  background: rgba(245,240,232,0.85);
+  border: 1px solid rgba(26,26,26,0.12);
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 2px 12px rgba(26,26,26,0.08);
+  flex-shrink: 0;
+}
+.click-zone-arrow svg {
+  width: 18px; height: 18px;
+  stroke: var(--ink-mid);
+  stroke-width: 2;
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* ========== Decorative Elements ========== */
+.mountain-bg {
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  height: 35%;
+  z-index: 0;
+  opacity: 0.06;
+}
+.bamboo-decor {
+  position: absolute;
+  right: 60px; top: 50%; transform: translateY(-50%);
+  opacity: 0.04;
+  z-index: 0;
+}
+
+/* ========== Tag ========== */
+.tag {
+  display: inline-block;
+  padding: 4px 12px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  letter-spacing: 0.05em;
+  border: 1px solid;
+  border-radius: 2px;
+}
+.tag-cinnabar { border-color: var(--cinnabar); color: var(--cinnabar); }
+.tag-indigo { border-color: var(--indigo); color: var(--indigo); }
+.tag-jade { border-color: var(--jade); color: var(--jade); }
+.tag-gold { border-color: var(--gold); color: var(--gold); }
+
+/* ========== Timeline ========== */
+.timeline { position: relative; padding-left: 32px; }
+.timeline::before {
+  content: ''; position: absolute;
+  left: 8px; top: 0; bottom: 0; width: 1.5px;
+  background: linear-gradient(180deg, var(--cinnabar), var(--ink-faint), transparent);
+}
+.timeline-item { position: relative; margin-bottom: 20px; }
+.timeline-item::before {
+  content: '';
+  position: absolute; left: -28px; top: 8px;
+  width: 10px; height: 10px;
+  border: 2px solid var(--cinnabar);
+  background: var(--paper);
+  border-radius: 50%;
+}
+.timeline-item .t-label {
+  font-family: 'ZCOOL XiaoWei', serif;
+  font-size: 0.85rem;
+  color: var(--cinnabar);
+  letter-spacing: 0.1em;
+}
+.timeline-item .t-content {
+  font-size: 0.9rem;
+  color: var(--ink-light);
+  margin-top: 4px;
+}
+
+/* ========== Architecture Layers ========== */
+.arch-layer {
+  padding: 20px 28px;
+  border-radius: 2px;
+  position: relative;
+  transition: transform 0.3s ease;
+}
+.arch-layer:hover { transform: translateX(4px); }
+.arch-layer-label {
+  font-family: 'ZCOOL XiaoWei', serif;
+  font-size: 0.75rem;
+  letter-spacing: 0.15em;
+  margin-bottom: 8px;
+}
+
+/* ========== Scrollbar ========== */
+::-webkit-scrollbar { display: none; }
+
+/* ========== Animations ========== */
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(24px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes fadeInLeft {
+  from { opacity: 0; transform: translateX(-24px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+@keyframes fadeInRight {
+  from { opacity: 0; transform: translateX(24px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.9); }
+  to { opacity: 1; transform: scale(1); }
+}
+@keyframes brushStroke {
+  from { width: 0; }
+  to { width: 80px; }
+}
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+@keyframes sealStamp {
+  0% { opacity: 0; transform: rotate(-8deg) scale(1.5); }
+  60% { opacity: 0.9; transform: rotate(-8deg) scale(0.95); }
+  100% { opacity: 0.85; transform: rotate(-8deg) scale(1); }
+}
+
+/* Stagger delays for children */
+.slide.active .anim-1 { animation: fadeInUp 0.7s 0.1s both; }
+.slide.active .anim-2 { animation: fadeInUp 0.7s 0.2s both; }
+.slide.active .anim-3 { animation: fadeInUp 0.7s 0.35s both; }
+.slide.active .anim-4 { animation: fadeInUp 0.7s 0.5s both; }
+.slide.active .anim-5 { animation: fadeInUp 0.7s 0.65s both; }
+.slide.active .anim-6 { animation: fadeInUp 0.7s 0.8s both; }
+.slide.active .anim-left { animation: fadeInLeft 0.7s 0.2s both; }
+.slide.active .anim-right { animation: fadeInRight 0.7s 0.3s both; }
+.slide.active .anim-scale { animation: scaleIn 0.6s 0.15s both; }
+.slide.active .anim-seal { animation: sealStamp 0.5s 0.8s both; }
+.slide.active .anim-brush { animation: brushStroke 0.8s 0.4s both; }
+.slide.active .anim-float { animation: float 4s 1s ease-in-out infinite; }
+
+/* ========== Responsive ========== */
+@media (max-width: 900px) {
+  .slide { padding: 40px 32px; }
+  .grid-2 { grid-template-columns: 1fr; }
+  .grid-3 { grid-template-columns: 1fr; }
+  .grid-4 { grid-template-columns: 1fr 1fr; }
+  .nav-dots { right: 16px; }
+  .vertical-text { display: none; }
+  .shortcuts-panel { display: none; }
+  .chapter-label { left: 20px; }
+}
+@media (max-width: 600px) {
+  .grid-4 { grid-template-columns: 1fr; }
+  .slide { padding: 30px 20px; }
+  .bar-label { width: 80px; font-size: 0.75rem; }
+  .page-counter { bottom: 10px; right: 20px; }
+  .chapter-label { bottom: 10px; left: 16px; font-size: 0.65rem; }
+}
+</style>
+</head>
+<body>
+
+<!-- Ink particle canvas -->
+<canvas id="ink-canvas"></canvas>
+
+<!-- Ink transition overlay -->
+<canvas id="inkTransitionCanvas"></canvas>
+
+<!-- Click navigation zones -->
+<div class="click-zone click-zone-prev" id="clickZonePrev" title="上一页">
+  <div class="click-zone-arrow">
+    <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+  </div>
+</div>
+<div class="click-zone click-zone-next" id="clickZoneNext" title="下一页">
+  <div class="click-zone-arrow">
+    <svg viewBox="0 0 24 24"><polyline points="9 6 15 12 9 18"/></svg>
+  </div>
+</div>
+
+<!-- Navigation dots -->
+<div class="nav-dots" id="navDots"></div>
+<!-- Page counter -->
+<div class="page-counter" id="pageCounter">01 / 12</div>
+<!-- Chapter label -->
+<div class="chapter-label" id="chapterLabel">封面</div>
+<!-- Progress bar -->
+<div class="progress-bar-container" id="progressBar">
+  <div class="progress-bar-fill" id="progressBarFill" style="width: 0%;"></div>
+</div>
+<!-- Shortcuts panel -->
+<div class="shortcuts-panel" id="shortcutsPanel">
+  <h4>快捷键</h4>
+  <div class="shortcut-row"><span class="shortcut-desc">下一页</span><span class="shortcut-key">→ ↓ Space</span></div>
+  <div class="shortcut-row"><span class="shortcut-desc">上一页</span><span class="shortcut-key">← ↑</span></div>
+  <div class="shortcut-row"><span class="shortcut-desc">跳转页码</span><span class="shortcut-key">1 - 9, 0</span></div>
+  <div class="shortcut-row"><span class="shortcut-desc">回到封面</span><span class="shortcut-key">Home Esc</span></div>
+  <div class="shortcut-row"><span class="shortcut-desc">跳到末页</span><span class="shortcut-key">End</span></div>
+  <div class="shortcut-row"><span class="shortcut-desc">全屏切换</span><span class="shortcut-key">F</span></div>
+  <div class="shortcut-row"><span class="shortcut-desc">本面板</span><span class="shortcut-key">?</span></div>
+</div>
+
+<div class="presentation" id="presentation">
+
+<!-- ==================== SLIDE 01: COVER ==================== -->
+<div class="slide active" data-index="0">
+  <!-- Mountain silhouette SVG background -->
+  <svg class="mountain-bg" viewBox="0 0 1440 400" preserveAspectRatio="none">
+    <path d="M0,400 L0,280 Q120,120 240,200 Q360,80 480,180 Q600,40 720,160 Q840,60 960,140 Q1080,20 1200,120 Q1320,80 1440,180 L1440,400 Z" fill="#1A1A1A"/>
+    <path d="M0,400 L0,320 Q180,200 360,280 Q540,160 720,260 Q900,140 1080,240 Q1260,180 1440,280 L1440,400 Z" fill="#2A2A2A" opacity="0.6"/>
+  </svg>
+  <div class="slide-inner" style="align-items: center; text-align: center;">
+    <div class="anim-1 s-label" style="margin-bottom: 20px;">四川非物质文化遗产 · 数字文旅导览</div>
+    <h1 class="anim-2 s-title" style="font-size: clamp(3.5rem, 7vw, 6rem); letter-spacing: 0.12em; margin-bottom: 12px;">小 蜀 记</h1>
+    <div class="anim-3 ink-divider" style="margin: 20px auto;"></div>
+    <p class="anim-4 s-subtitle" style="max-width: 600px; margin: 0 auto;">
+      基于 uni-app + 微信云开发的非遗文化智能导览小程序
+    </p>
+    <div class="anim-5" style="margin-top: 40px; display: flex; gap: 32px; justify-content: center; flex-wrap: wrap;">
+      <span class="tag tag-cinnabar">百度 TTS 语音导览</span>
+      <span class="tag tag-indigo">15 个云函数</span>
+      <span class="tag tag-jade">双层持久化</span>
+    </div>
+    <div class="anim-seal seal" style="position: absolute; bottom: 80px; right: 100px;">蜀</div>
+    <div class="anim-float vertical-text" style="position: absolute; left: 32px; top: 50%; transform: translateY(-50%);">非物质文化遗产数字化保护与传播</div>
+  </div>
+</div>
+
+<!-- ==================== SLIDE 02: PAIN POINTS ==================== -->
+<div class="slide" data-index="1">
+  <div class="slide-inner">
+    <div class="anim-1 s-label">PAIN POINTS</div>
+    <h2 class="anim-2 s-title" style="margin-bottom: 8px;">非遗数字化的四道坎</h2>
+    <div class="anim-brush ink-divider"></div>
+    <div class="grid-2 anim-3" style="margin-top: 28px;">
+      <div class="ink-card">
+        <div class="s-number" style="position: absolute; top: -10px; right: 16px; font-size: 3rem; opacity: 0.08;">壹</div>
+        <div class="s-label" style="font-size: 0.7rem; margin-bottom: 10px;">内容呈现</div>
+        <div style="font-family: 'Noto Serif SC'; font-size: 1.15rem; font-weight: 600; margin-bottom: 8px; color: var(--ink);">单一枯燥</div>
+        <p class="s-body" style="font-size: 0.85rem;">80% 的非遗应用仅提供图文堆砌展示，静态内容完读率不足 30%，用户难以产生沉浸感。</p>
+      </div>
+      <div class="ink-card">
+        <div class="s-number" style="position: absolute; top: -10px; right: 16px; font-size: 3rem; opacity: 0.08;">贰</div>
+        <div class="s-label" style="font-size: 0.7rem; margin-bottom: 10px;">语音导览</div>
+        <div style="font-family: 'Noto Serif SC'; font-size: 1.15rem; font-weight: 600; margin-bottom: 8px; color: var(--ink);">严重缺位</div>
+        <p class="s-body" style="font-size: 0.85rem;">语音导览覆盖率不足 40%，多为预录音频，无法动态调整内容，缺乏多语种和个性化能力。</p>
+      </div>
+      <div class="ink-card">
+        <div class="s-number" style="position: absolute; top: -10px; right: 16px; font-size: 3rem; opacity: 0.08;">叁</div>
+        <div class="s-label" style="font-size: 0.7rem; margin-bottom: 10px;">个性化</div>
+        <div style="font-family: 'Noto Serif SC'; font-size: 1.15rem; font-weight: 600; margin-bottom: 8px; color: var(--ink);">数据断层</div>
+        <p class="s-body" style="font-size: 0.85rem;">浏览历史、收藏足迹无法跨会话保留，每次使用需重新探索，复访意愿低下。</p>
+      </div>
+      <div class="ink-card">
+        <div class="s-number" style="position: absolute; top: -10px; right: 16px; font-size: 3rem; opacity: 0.08;">肆</div>
+        <div class="s-label" style="font-size: 0.7rem; margin-bottom: 10px;">技术架构</div>
+        <div style="font-family: 'Noto Serif SC'; font-size: 1.15rem; font-weight: 600; margin-bottom: 8px; color: var(--ink);">陈旧难维护</div>
+        <p class="s-body" style="font-size: 0.85rem;">传统 MVC 架构代码耦合度高，功能迭代成本激增，严重制约产品持续优化。</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== SLIDE 03: TARGET USERS & COMPETITORS ==================== -->
+<div class="slide" data-index="2">
+  <div class="slide-inner">
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 48px; height: 100%; align-items: center;">
+      <!-- Left: Target Users -->
+      <div>
+        <div class="anim-1 s-label">TARGET USERS</div>
+        <h2 class="anim-2 s-title" style="font-size: clamp(1.8rem, 3vw, 2.6rem);">四类核心用户</h2>
+        <div class="anim-brush ink-divider"></div>
+        <div class="flex-col anim-3" style="margin-top: 20px;">
+          <div class="flex-row" style="gap: 12px; align-items: flex-start;">
+            <div class="seal seal-sm" style="flex-shrink: 0; transform: none; opacity: 0.7;">游</div>
+            <div>
+              <div style="font-weight: 600; font-size: 1rem; color: var(--ink);">年轻游客 · 18-35岁</div>
+              <p style="font-size: 0.82rem; color: var(--ink-mid); margin-top: 2px;">热衷打卡文化，偏好沉浸式体验</p>
+            </div>
+          </div>
+          <div class="flex-row" style="gap: 12px; align-items: flex-start;">
+            <div class="seal seal-sm" style="flex-shrink: 0; transform: none; opacity: 0.7;">文</div>
+            <div>
+              <div style="font-weight: 600; font-size: 1rem; color: var(--ink);">文旅爱好者 · 30-50岁</div>
+              <p style="font-size: 0.82rem; color: var(--ink-mid); margin-top: 2px;">注重文化深度和知识性内容</p>
+            </div>
+          </div>
+          <div class="flex-row" style="gap: 12px; align-items: flex-start;">
+            <div class="seal seal-sm" style="flex-shrink: 0; transform: none; opacity: 0.7;">学</div>
+            <div>
+              <div style="font-weight: 600; font-size: 1rem; color: var(--ink);">高校学生</div>
+              <p style="font-size: 0.82rem; color: var(--ink-mid); margin-top: 2px;">非遗课程实践与学习探索需求</p>
+            </div>
+          </div>
+          <div class="flex-row" style="gap: 12px; align-items: flex-start;">
+            <div class="seal seal-sm" style="flex-shrink: 0; transform: none; opacity: 0.7;">外</div>
+            <div>
+              <div style="font-weight: 600; font-size: 1rem; color: var(--ink);">入境游客</div>
+              <p style="font-size: 0.82rem; color: var(--ink-mid); margin-top: 2px;">多语言便捷体验四川文化</p>
+            </div>
+          </div>
+        </div>
+      </div>
+      <!-- Right: Competitive Analysis -->
+      <div>
+        <div class="anim-left s-label" style="color: var(--indigo);">COMPETITIVE EDGE</div>
+        <h2 class="anim-left s-title" style="font-size: clamp(1.8rem, 3vw, 2.6rem);">对比行业平均</h2>
+        <div class="ink-divider" style="background: linear-gradient(90deg, var(--indigo), transparent);"></div>
+        <div class="flex-col anim-right" style="margin-top: 20px;">
+          <div class="ink-card" style="padding: 16px 20px;">
+            <div class="flex-between">
+              <span style="font-size: 0.9rem; color: var(--ink);">语音导览覆盖率</span>
+              <span style="font-family: 'Ma Shan Zheng'; font-size: 1.4rem; color: var(--cinnabar);">+67%</span>
+            </div>
+            <div style="font-size: 0.78rem; color: var(--ink-mid); margin-top: 4px;">行业 33% → 小蜀记 100%</div>
+          </div>
+          <div class="ink-card" style="padding: 16px 20px;">
+            <div class="flex-between">
+              <span style="font-size: 0.9rem; color: var(--ink);">个性化功能完整度</span>
+              <span style="font-family: 'Ma Shan Zheng'; font-size: 1.4rem; color: var(--cinnabar);">+300%</span>
+            </div>
+            <div style="font-size: 0.78rem; color: var(--ink-mid); margin-top: 4px;">收藏+历史+打卡全覆盖</div>
+          </div>
+          <div class="ink-card" style="padding: 16px 20px;">
+            <div class="flex-between">
+              <span style="font-size: 0.9rem; color: var(--ink);">运维成本</span>
+              <span style="font-family: 'Ma Shan Zheng'; font-size: 1.4rem; color: var(--jade);">↓90%</span>
+            </div>
+            <div style="font-size: 0.78rem; color: var(--ink-mid); margin-top: 4px;">微信云开发 Serverless 免运维</div>
+          </div>
+          <div class="ink-card" style="padding: 16px 20px;">
+            <div class="flex-between">
+              <span style="font-size: 0.9rem; color: var(--ink);">开发效率</span>
+              <span style="font-family: 'Ma Shan Zheng'; font-size: 1.4rem; color: var(--jade);">↑50%</span>
+            </div>
+            <div style="font-size: 0.78rem; color: var(--ink-mid); margin-top: 4px;">uni-app + 云函数分层架构</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== SLIDE 04: TECH STACK ==================== -->
+<div class="slide" data-index="3">
+  <div class="slide-inner" style="align-items: center; text-align: center;">
+    <div class="anim-1 s-label">TECH STACK</div>
+    <h2 class="anim-2 s-title">技术选型</h2>
+    <div class="anim-brush ink-divider" style="margin: 16px auto;"></div>
+    <div class="grid-2 anim-3" style="margin-top: 32px; max-width: 900px;">
+      <div class="ink-card" style="text-align: left;">
+        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 14px;">
+          <div style="width: 40px; height: 40px; background: var(--cinnabar); border-radius: 2px; display: flex; align-items: center; justify-content: center; color: var(--white-ink); font-family: 'Ma Shan Zheng'; font-size: 1.1rem;">前</div>
+          <div>
+            <div style="font-weight: 600; font-size: 1.05rem;">uni-app + Vue2</div>
+            <div style="font-size: 0.78rem; color: var(--ink-faint);">跨平台框架 · 响应式数据绑定</div>
+          </div>
+        </div>
+        <p class="s-body" style="font-size: 0.82rem;">基于 Vue2 的 data/computed/watch 实现 MVVM，组件化开发，pages.json 声明式路由，支持条件编译。</p>
+      </div>
+      <div class="ink-card" style="text-align: left;">
+        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 14px;">
+          <div style="width: 40px; height: 40px; background: var(--indigo); border-radius: 2px; display: flex; align-items: center; justify-content: center; color: var(--white-ink); font-family: 'Ma Shan Zheng'; font-size: 1.1rem;">云</div>
+          <div>
+            <div style="font-weight: 600; font-size: 1.05rem;">微信云开发</div>
+            <div style="font-size: 0.78rem; color: var(--ink-faint);">Serverless · 免运维 · 免鉴权</div>
+          </div>
+        </div>
+        <p class="s-body" style="font-size: 0.82rem;">云数据库（JSON文档）、云函数（Node.js）、云存储（图片/音频），wx.cloud.callFunction 免鉴权调用。</p>
+      </div>
+      <div class="ink-card" style="text-align: left;">
+        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 14px;">
+          <div style="width: 40px; height: 40px; background: var(--jade); border-radius: 2px; display: flex; align-items: center; justify-content: center; color: var(--white-ink); font-family: 'Ma Shan Zheng'; font-size: 1.1rem;">声</div>
+          <div>
+            <div style="font-weight: 600; font-size: 1.05rem;">百度 TTS 语音合成</div>
+            <div style="font-size: 0.78rem; color: var(--ink-faint);">云函数代理 · 深度学习 · 高自然度</div>
+          </div>
+        </div>
+        <p class="s-body" style="font-size: 0.82rem;">云函数 tts-guide 代理调用百度 TTS API，合成 MP3 上传云存储，返回临时播放链接。</p>
+      </div>
+      <div class="ink-card" style="text-align: left;">
+        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 14px;">
+          <div style="width: 40px; height: 40px; background: var(--gold); border-radius: 2px; display: flex; align-items: center; justify-content: center; color: var(--white-ink); font-family: 'Ma Shan Zheng'; font-size: 1.1rem;">图</div>
+          <div>
+            <div style="font-weight: 600; font-size: 1.05rem;">腾讯地图 SDK</div>
+            <div style="font-size: 0.78rem; color: var(--ink-faint);">定位 · 路线规划 · POI 检索</div>
+          </div>
+        </div>
+        <p class="s-body" style="font-size: 0.82rem;">默认定位成都保护隐私，用户主动触发定位权限，支持多导航平台（高德/百度/腾讯/微信）。</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== SLIDE 05: ARCHITECTURE ==================== -->
+<div class="slide" data-index="4">
+  <div class="slide-inner">
+    <div class="anim-1 s-label">ARCHITECTURE</div>
+    <h2 class="anim-2 s-title" style="font-size: clamp(1.8rem, 3vw, 2.6rem);">三层系统架构</h2>
+    <div class="anim-brush ink-divider"></div>
+    <div class="flex-col anim-3" style="margin-top: 28px; gap: 0; max-width: 1000px;">
+      <!-- Layer 1: Frontend -->
+      <div class="arch-layer" style="background: rgba(192,60,48,0.06); border-left: 4px solid var(--cinnabar);">
+        <div class="arch-layer-label" style="color: var(--cinnabar);">LAYER ONE · 视图层</div>
+        <div style="display: flex; gap: 24px; flex-wrap: wrap;">
+          <div>
+            <div style="font-weight: 600; font-size: 1rem;">uni-app (Vue2)</div>
+            <div style="font-size: 0.82rem; color: var(--ink-mid); margin-top: 4px;">15 个 .vue 页面 · data/computed/watch MVVM · pages.json 路由 · tabBar 三页签</div>
+          </div>
+          <div style="flex-shrink: 0; display: flex; gap: 8px; flex-wrap: wrap; align-self: center;">
+            <span class="tag tag-cinnabar">首页</span>
+            <span class="tag tag-cinnabar">非遗导览</span>
+            <span class="tag tag-cinnabar">景点导览</span>
+            <span class="tag tag-cinnabar">打卡</span>
+            <span class="tag tag-cinnabar">搜索</span>
+            <span class="tag tag-cinnabar">个人中心</span>
+          </div>
+        </div>
+      </div>
+      <!-- Arrow -->
+      <div style="text-align: center; padding: 6px 0; color: var(--ink-faint); font-size: 1.2rem;">▼</div>
+      <!-- Layer 2: Unified Call Layer -->
+      <div class="arch-layer" style="background: rgba(43,69,112,0.06); border-left: 4px solid var(--indigo);">
+        <div class="arch-layer-label" style="color: var(--indigo);">LAYER TWO · 统一调用层</div>
+        <div style="display: flex; gap: 32px; flex-wrap: wrap;">
+          <div>
+            <div style="font-weight: 600; font-size: 1rem;">cloudCall.js</div>
+            <div style="font-size: 0.82rem; color: var(--ink-mid); margin-top: 4px;">云函数调用 · 统一错误处理 · Loading 管理 · 超时控制 · 图片路径处理</div>
+          </div>
+          <div>
+            <div style="font-weight: 600; font-size: 1rem;">cloudFunctionNames.js</div>
+            <div style="font-size: 0.82rem; color: var(--ink-mid); margin-top: 4px;">15 个云函数名称管理 · 便捷调用方法</div>
+          </div>
+          <div>
+            <div style="font-weight: 600; font-size: 1rem;">storage.js</div>
+            <div style="font-size: 0.82rem; color: var(--ink-mid); margin-top: 4px;">TTL 缓存 · FIFO 搜索历史 · 命名空间隔离</div>
+          </div>
+        </div>
+      </div>
+      <!-- Arrow -->
+      <div style="text-align: center; padding: 6px 0; color: var(--ink-faint); font-size: 1.2rem;">▼</div>
+      <!-- Layer 3: Backend -->
+      <div class="arch-layer" style="background: rgba(91,140,106,0.06); border-left: 4px solid var(--jade);">
+        <div class="arch-layer-label" style="color: var(--jade);">LAYER THREE · 云端服务层</div>
+        <div style="display: flex; gap: 32px; flex-wrap: wrap;">
+          <div>
+            <div style="font-weight: 600; font-size: 1rem;">云函数 (15个)</div>
+            <div style="font-size: 0.82rem; color: var(--ink-mid); margin-top: 4px;">Node.js 运行时 · 认证 · 收藏 · 打卡 · TTS · 路线 · 历史 · 反馈 · 统计</div>
+          </div>
+          <div>
+            <div style="font-weight: 600; font-size: 1rem;">云数据库</div>
+            <div style="font-size: 0.82rem; color: var(--ink-mid); margin-top: 4px;">user_favorites · browse_history · checkin · users</div>
+          </div>
+          <div>
+            <div style="font-weight: 600; font-size: 1rem;">云存储</div>
+            <div style="font-size: 0.82rem; color: var(--ink-mid); margin-top: 4px;">images/audio/ · images/checkin/ · images/heritage/ · images/scenic/</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="anim-seal seal" style="position: absolute; bottom: 60px; right: 80px;">构</div>
+  </div>
+</div>
+
+<!-- ==================== SLIDE 06: VOICE GUIDE ==================== -->
+<div class="slide" data-index="5">
+  <div class="slide-inner">
+    <div style="display: grid; grid-template-columns: 1.2fr 1fr; gap: 60px; height: 100%; align-items: center;">
+      <div>
+        <div class="anim-1 s-label">VOICE GUIDE</div>
+        <h2 class="anim-2 s-title" style="font-size: clamp(1.8rem, 3vw, 2.6rem);">语音导览流程</h2>
+        <div class="anim-brush ink-divider"></div>
+        <p class="anim-3 s-body" style="margin-top: 16px; max-width: 480px;">
+          通过云函数代理架构，将百度 TTS 语音合成的全部重计算任务卸载到服务端。客户端仅需处理音频播放，保证了小程序的流畅性和稳定性。
+        </p>
+        <div class="timeline anim-4" style="margin-top: 28px;">
+          <div class="timeline-item">
+            <div class="t-label">STEP 01 · 用户触发</div>
+            <div class="t-content">进入非遗详情页 → 点击「语音讲解」→ 调用 cloudFn.ttsGuide()</div>
+          </div>
+          <div class="timeline-item">
+            <div class="t-label">STEP 02 · 云端合成</div>
+            <div class="t-content">获取百度 Access Token → TTS 合成 MP3 → 上传云存储 images/audio/</div>
+          </div>
+          <div class="timeline-item">
+            <div class="t-label">STEP 03 · 本地播放</div>
+            <div class="t-content">返回临时播放链接 → wx.createInnerAudioContext() → 暂停/恢复/停止控制</div>
+          </div>
+        </div>
+      </div>
+      <!-- Right: Code snippet style -->
+      <div class="anim-right">
+        <div style="background: var(--ink); color: var(--paper); border-radius: 4px; padding: 28px 24px; font-family: 'Courier New', monospace; font-size: 0.78rem; line-height: 1.8; overflow: hidden;">
+          <div style="color: var(--ink-faint); font-size: 0.7rem; margin-bottom: 12px;">cloudfunctions/tts-guide/index.js</div>
+          <div><span style="color: var(--cinnabar);">async function</span> <span style="color: var(--gold);">getBaiduToken</span>() {</div>
+          <div style="padding-left: 16px;"><span style="color: var(--ink-faint);">// OAuth → access_token</span></div>
+          <div>}</div>
+          <br>
+          <div><span style="color: var(--cinnabar);">async function</span> <span style="color: var(--gold);">callBaiduTTS</span>(text, token) {</div>
+          <div style="padding-left: 16px;"><span style="color: var(--ink-faint);">// text → MP3 buffer</span></div>
+          <div style="padding-left: 16px;"><span style="color: var(--ink-faint);">// spd:5 pit:5 vol:5 per:0</span></div>
+          <div>}</div>
+          <br>
+          <div><span style="color: var(--cinnabar);">async function</span> <span style="color: var(--gold);">uploadToCloud</span>(buf, name) {</div>
+          <div style="padding-left: 16px;"><span style="color: var(--ink-faint);">// buffer → cloud storage</span></div>
+          <div style="padding-left: 16px;"><span style="color: var(--ink-faint);">// return tempFileURL</span></div>
+          <div>}</div>
+          <br>
+          <div style="border-top: 1px solid rgba(255,255,255,0.1); padding-top: 12px; margin-top: 4px;">
+            <div><span style="color: var(--jade);">exports.main</span> = <span style="color: var(--cinnabar);">async</span> (event) => {</div>
+            <div style="padding-left: 16px;"><span style="color: var(--ink-faint);">// 全链路：Token → TTS → Upload → URL</span></div>
+            <div style="padding-left: 16px;"><span style="color: var(--ink-faint);">// 合成延迟 &lt; 3s</span></div>
+            <div>}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== SLIDE 07: DATA PERSISTENCE ==================== -->
+<div class="slide" data-index="6">
+  <div class="slide-inner" style="align-items: center; text-align: center;">
+    <div class="anim-1 s-label">DATA PERSISTENCE</div>
+    <h2 class="anim-2 s-title">双层持久化策略</h2>
+    <div class="anim-brush ink-divider" style="margin: 16px auto;"></div>
+    <div class="grid-2 anim-3" style="margin-top: 28px; max-width: 960px; text-align: left;">
+      <!-- Cloud DB -->
+      <div class="ink-card" style="border-top: 4px solid var(--indigo); padding: 28px;">
+        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 18px;">
+          <div style="width: 36px; height: 36px; background: var(--indigo); border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#F5F0E8" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+          </div>
+          <div>
+            <div style="font-weight: 700; font-size: 1.1rem; color: var(--indigo);">云数据库</div>
+            <div style="font-size: 0.75rem; color: var(--ink-faint);">跨设备同步 · 长期可靠</div>
+          </div>
+        </div>
+        <div class="flex-col" style="gap: 10px;">
+          <div style="display: flex; justify-content: space-between; padding: 8px 12px; background: rgba(43,69,112,0.04); border-radius: 2px;">
+            <span style="font-size: 0.88rem;">收藏列表</span>
+            <span class="tag tag-indigo" style="font-size: 0.65rem;">user_favorites</span>
+          </div>
+          <div style="display: flex; justify-content: space-between; padding: 8px 12px; background: rgba(43,69,112,0.04); border-radius: 2px;">
+            <span style="font-size: 0.88rem;">浏览历史</span>
+            <span class="tag tag-indigo" style="font-size: 0.65rem;">browse_history · FIFO 100</span>
+          </div>
+          <div style="display: flex; justify-content: space-between; padding: 8px 12px; background: rgba(43,69,112,0.04); border-radius: 2px;">
+            <span style="font-size: 0.88rem;">打卡记录</span>
+            <span class="tag tag-indigo" style="font-size: 0.65rem;">checkin + 云存储图片</span>
+          </div>
+        </div>
+      </div>
+      <!-- Local Storage -->
+      <div class="ink-card" style="border-top: 4px solid var(--jade); padding: 28px;">
+        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 18px;">
+          <div style="width: 36px; height: 36px; background: var(--jade); border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#F5F0E8" stroke-width="2"><rect x="2" y="6" width="20" height="14" rx="2"/><path d="M2 6l10-4 10 4"/></svg>
+          </div>
+          <div>
+            <div style="font-weight: 700; font-size: 1.1rem; color: var(--jade);">本地存储</div>
+            <div style="font-size: 0.75rem; color: var(--ink-faint);">低延迟 · 离线可用</div>
+          </div>
+        </div>
+        <div class="flex-col" style="gap: 10px;">
+          <div style="display: flex; justify-content: space-between; padding: 8px 12px; background: rgba(91,140,106,0.04); border-radius: 2px;">
+            <span style="font-size: 0.88rem;">搜索历史</span>
+            <span class="tag tag-jade" style="font-size: 0.65rem;">FIFO · 最多 10 条</span>
+          </div>
+          <div style="display: flex; justify-content: space-between; padding: 8px 12px; background: rgba(91,140,106,0.04); border-radius: 2px;">
+            <span style="font-size: 0.88rem;">用户偏好</span>
+            <span class="tag tag-jade" style="font-size: 0.65rem;">Key-Value · 实时写入</span>
+          </div>
+          <div style="display: flex; justify-content: space-between; padding: 8px 12px; background: rgba(91,140,106,0.04); border-radius: 2px;">
+            <span style="font-size: 0.88rem;">TTL 缓存</span>
+            <span class="tag tag-jade" style="font-size: 0.65rem;">自动过期清理</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <p class="anim-4 s-body" style="margin-top: 20px; max-width: 600px; font-size: 0.82rem; color: var(--ink-mid);">
+      前端不直接操作云数据库，所有数据操作通过 15 个云函数完成，确保安全性和一致性。
+    </p>
+  </div>
+</div>
+
+<!-- ==================== SLIDE 08: CLOUD FUNCTIONS ==================== -->
+<div class="slide" data-index="7">
+  <div class="slide-inner">
+    <div class="anim-1 s-label">CLOUD FUNCTIONS</div>
+    <h2 class="anim-2 s-title" style="font-size: clamp(1.8rem, 3vw, 2.6rem);">15 个云函数全览</h2>
+    <div class="anim-brush ink-divider"></div>
+    <div style="margin-top: 20px;">
+      <!-- Function categories -->
+      <div class="anim-3" style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin-bottom: 20px;">
+        <div style="text-align: center; padding: 10px; background: rgba(192,60,48,0.06); border-radius: 2px;">
+          <div style="font-family: 'Ma Shan Zheng'; font-size: 1.5rem; color: var(--cinnabar);">2</div>
+          <div style="font-size: 0.75rem; color: var(--ink-mid);">用户认证</div>
+        </div>
+        <div style="text-align: center; padding: 10px; background: rgba(43,69,112,0.06); border-radius: 2px;">
+          <div style="font-family: 'Ma Shan Zheng'; font-size: 1.5rem; color: var(--indigo);">3</div>
+          <div style="font-size: 0.75rem; color: var(--ink-mid);">收藏管理</div>
+        </div>
+        <div style="text-align: center; padding: 10px; background: rgba(91,140,106,0.06); border-radius: 2px;">
+          <div style="font-family: 'Ma Shan Zheng'; font-size: 1.5rem; color: var(--jade);">3</div>
+          <div style="font-size: 0.75rem; color: var(--ink-mid);">打卡系统</div>
+        </div>
+        <div style="text-align: center; padding: 10px; background: rgba(200,169,81,0.06); border-radius: 2px;">
+          <div style="font-family: 'Ma Shan Zheng'; font-size: 1.5rem; color: var(--gold);">2</div>
+          <div style="font-size: 0.75rem; color: var(--ink-mid);">语音合成</div>
+        </div>
+        <div style="text-align: center; padding: 10px; background: rgba(26,26,26,0.03); border-radius: 2px;">
+          <div style="font-family: 'Ma Shan Zheng'; font-size: 1.5rem; color: var(--ink-mid);">5</div>
+          <div style="font-size: 0.75rem; color: var(--ink-mid);">地图·历史·反馈·统计</div>
+        </div>
+      </div>
+      <!-- Function list grid -->
+      <div class="anim-4" style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px;">
+        <div style="font-size: 0.72rem; padding: 6px 8px; background: rgba(192,60,48,0.04); border-left: 2px solid var(--cinnabar); color: var(--ink-light); font-family: monospace;">getOpenId</div>
+        <div style="font-size: 0.72rem; padding: 6px 8px; background: rgba(192,60,48,0.04); border-left: 2px solid var(--cinnabar); color: var(--ink-light); font-family: monospace;">user-login</div>
+        <div style="font-size: 0.72rem; padding: 6px 8px; background: rgba(43,69,112,0.04); border-left: 2px solid var(--indigo); color: var(--ink-light); font-family: monospace;">favorite-add</div>
+        <div style="font-size: 0.72rem; padding: 6px 8px; background: rgba(43,69,112,0.04); border-left: 2px solid var(--indigo); color: var(--ink-light); font-family: monospace;">favorite-remove</div>
+        <div style="font-size: 0.72rem; padding: 6px 8px; background: rgba(43,69,112,0.04); border-left: 2px solid var(--indigo); color: var(--ink-light); font-family: monospace;">favorite-list</div>
+        <div style="font-size: 0.72rem; padding: 6px 8px; background: rgba(91,140,106,0.04); border-left: 2px solid var(--jade); color: var(--ink-light); font-family: monospace;">checkin-submit</div>
+        <div style="font-size: 0.72rem; padding: 6px 8px; background: rgba(91,140,106,0.04); border-left: 2px solid var(--jade); color: var(--ink-light); font-family: monospace;">checkLocation</div>
+        <div style="font-size: 0.72rem; padding: 6px 8px; background: rgba(91,140,106,0.04); border-left: 2px solid var(--jade); color: var(--ink-light); font-family: monospace;">getMyCheckin</div>
+        <div style="font-size: 0.72rem; padding: 6px 8px; background: rgba(200,169,81,0.04); border-left: 2px solid var(--gold); color: var(--ink-light); font-family: monospace;">tts-guide</div>
+        <div style="font-size: 0.72rem; padding: 6px 8px; background: rgba(200,169,81,0.04); border-left: 2px solid var(--gold); color: var(--ink-light); font-family: monospace;">batch-tts</div>
+        <div style="font-size: 0.72rem; padding: 6px 8px; background: rgba(26,26,26,0.02); border-left: 2px solid var(--ink-faint); color: var(--ink-light); font-family: monospace;">geo-reverse</div>
+        <div style="font-size: 0.72rem; padding: 6px 8px; background: rgba(26,26,26,0.02); border-left: 2px solid var(--ink-faint); color: var(--ink-light); font-family: monospace;">getRoutes</div>
+        <div style="font-size: 0.72rem; padding: 6px 8px; background: rgba(26,26,26,0.02); border-left: 2px solid var(--ink-faint); color: var(--ink-light); font-family: monospace;">addBrowseHistory</div>
+        <div style="font-size: 0.72rem; padding: 6px 8px; background: rgba(26,26,26,0.02); border-left: 2px solid var(--ink-faint); color: var(--ink-light); font-family: monospace;">submit-feedback</div>
+        <div style="font-size: 0.72rem; padding: 6px 8px; background: rgba(26,26,26,0.02); border-left: 2px solid var(--ink-faint); color: var(--ink-light); font-family: monospace;">initViewCount</div>
+      </div>
+      <!-- Key features -->
+      <div class="anim-5 flex-row" style="margin-top: 24px; justify-content: center; gap: 24px; flex-wrap: wrap;">
+        <div class="flex-row" style="gap: 6px;">
+          <span style="color: var(--cinnabar); font-size: 0.9rem;">&#9679;</span>
+          <span style="font-size: 0.82rem; color: var(--ink-mid);">统一错误处理</span>
+        </div>
+        <div class="flex-row" style="gap: 6px;">
+          <span style="color: var(--cinnabar); font-size: 0.9rem;">&#9679;</span>
+          <span style="font-size: 0.82rem; color: var(--ink-mid);">超时控制 (Promise.race)</span>
+        </div>
+        <div class="flex-row" style="gap: 6px;">
+          <span style="color: var(--cinnabar); font-size: 0.9rem;">&#9679;</span>
+          <span style="font-size: 0.82rem; color: var(--ink-mid);">Loading 自动管理</span>
+        </div>
+        <div class="flex-row" style="gap: 6px;">
+          <span style="color: var(--cinnabar); font-size: 0.9rem;">&#9679;</span>
+          <span style="font-size: 0.82rem; color: var(--ink-mid);">批量图片路径处理</span>
+        </div>
+      </div>
+    </div>
+    <div class="anim-seal seal" style="position: absolute; bottom: 60px; right: 80px;">函</div>
+  </div>
+</div>
+
+<!-- ==================== SLIDE 09: TEST RESULTS ==================== -->
+<div class="slide" data-index="8">
+  <div class="slide-inner" style="align-items: center; text-align: center;">
+    <div class="s-big-number anim-scale" style="top: 10%; right: 10%;">12</div>
+    <div class="anim-1 s-label">TEST RESULTS</div>
+    <h2 class="anim-2 s-title" style="font-size: clamp(2rem, 4vw, 3.2rem);">功能测试 · 全部通过</h2>
+    <div class="anim-brush ink-divider" style="margin: 16px auto;"></div>
+    <div class="anim-3" style="margin: 28px auto 0; display: flex; align-items: baseline; gap: 8px;">
+      <span style="font-family: 'Ma Shan Zheng'; font-size: clamp(6rem, 14vw, 11rem); color: var(--cinnabar); line-height: 1;">12</span>
+      <span style="font-family: 'Ma Shan Zheng'; font-size: clamp(2rem, 4vw, 3.5rem); color: var(--ink-faint); line-height: 1;">/ 12</span>
+    </div>
+    <div class="anim-4" style="font-family: 'Ma Shan Zheng'; font-size: 1.6rem; color: var(--ink-mid); letter-spacing: 0.3em; margin-top: 8px;">通过率 100%</div>
+    <div class="grid-3 anim-5" style="margin-top: 36px; max-width: 800px; text-align: left;">
+      <div class="ink-card" style="padding: 16px; text-align: center;">
+        <div style="font-size: 0.7rem; color: var(--ink-faint); letter-spacing: 0.1em; margin-bottom: 6px;">语音导览</div>
+        <div style="font-family: 'Ma Shan Zheng'; font-size: 1.6rem; color: var(--jade);">5 / 5</div>
+        <div style="font-size: 0.7rem; color: var(--ink-faint); margin-top: 4px;">合成延迟 &lt; 3s</div>
+      </div>
+      <div class="ink-card" style="padding: 16px; text-align: center;">
+        <div style="font-size: 0.7rem; color: var(--ink-faint); letter-spacing: 0.1em; margin-bottom: 6px;">收藏功能</div>
+        <div style="font-family: 'Ma Shan Zheng'; font-size: 1.6rem; color: var(--jade);">2 / 2</div>
+        <div style="font-size: 0.7rem; color: var(--ink-faint); margin-top: 4px;">云端数据同步</div>
+      </div>
+      <div class="ink-card" style="padding: 16px; text-align: center;">
+        <div style="font-size: 0.7rem; color: var(--ink-faint); letter-spacing: 0.1em; margin-bottom: 6px;">路由·搜索·异常</div>
+        <div style="font-family: 'Ma Shan Zheng'; font-size: 1.6rem; color: var(--jade);">5 / 5</div>
+        <div style="font-size: 0.7rem; color: var(--ink-faint); margin-top: 4px;">断网不闪退</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== SLIDE 10: SATISFACTION ==================== -->
+<div class="slide" data-index="9">
+  <div class="slide-inner">
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 60px; height: 100%; align-items: center;">
+      <div>
+        <div class="anim-1 s-label">SATISFACTION</div>
+        <h2 class="anim-2 s-title" style="font-size: clamp(1.8rem, 3vw, 2.6rem);">用户满意度</h2>
+        <div class="anim-brush ink-divider"></div>
+        <p class="anim-3 s-body" style="margin-top: 16px;">
+          有效样本 N=50，采用李克特 5 级量表评估。各维度平均得分均在 4.1 以上，整体满意度 <span style="font-family: 'Ma Shan Zheng'; font-size: 1.4rem; color: var(--cinnabar);">4.3</span>。
+        </p>
+        <div class="anim-4" style="margin-top: 20px; padding: 16px; background: rgba(200,169,81,0.06); border-left: 3px solid var(--gold); border-radius: 2px;">
+          <div style="font-size: 0.82rem; color: var(--ink-mid);">
+            <span style="color: var(--gold); font-weight: 600;">最高分</span>：操作便捷性 4.5/5<br>
+            <span style="color: var(--gold); font-weight: 600;">语音导览</span>：4.4/5（百度 TTS 自然度认可）<br>
+            <span style="color: var(--cinnabar); font-weight: 600;">待优化</span>：界面美观度 4.1/5（后续迭代方向）
+          </div>
+        </div>
+      </div>
+      <div class="anim-right">
+        <div style="display: flex; flex-direction: column; gap: 0;">
+          <div class="bar-row">
+            <div class="bar-label">功能完整性</div>
+            <div class="bar-track"><div class="bar-fill" data-width="84" style="background: linear-gradient(90deg, var(--indigo), var(--indigo-light));"><span class="bar-value">4.2</span></div></div>
+          </div>
+          <div class="bar-row">
+            <div class="bar-label">语音导览</div>
+            <div class="bar-track"><div class="bar-fill" data-width="88" style="background: linear-gradient(90deg, var(--cinnabar), var(--cinnabar-dark));"><span class="bar-value">4.4</span></div></div>
+          </div>
+          <div class="bar-row">
+            <div class="bar-label">操作便捷性</div>
+            <div class="bar-track"><div class="bar-fill" data-width="90" style="background: linear-gradient(90deg, var(--jade), #3D7A52);"><span class="bar-value">4.5</span></div></div>
+          </div>
+          <div class="bar-row">
+            <div class="bar-label">界面美观度</div>
+            <div class="bar-track"><div class="bar-fill" data-width="82" style="background: linear-gradient(90deg, var(--gold), #A8893A);"><span class="bar-value">4.1</span></div></div>
+          </div>
+          <div class="bar-row">
+            <div class="bar-label">整体满意度</div>
+            <div class="bar-track"><div class="bar-fill" data-width="86" style="background: linear-gradient(90deg, var(--ink-mid), var(--ink));"><span class="bar-value">4.3</span></div></div>
+          </div>
+        </div>
+        <!-- Scale reference -->
+        <div style="display: flex; justify-content: space-between; margin-top: 8px; padding: 0 136px;">
+          <span style="font-size: 0.7rem; color: var(--ink-faint);">1.0</span>
+          <span style="font-size: 0.7rem; color: var(--ink-faint);">3.0</span>
+          <span style="font-size: 0.7rem; color: var(--ink-faint);">5.0</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== SLIDE 11: CONCLUSION ==================== -->
+<div class="slide" data-index="10">
+  <!-- Mountain silhouette -->
+  <svg class="mountain-bg" viewBox="0 0 1440 400" preserveAspectRatio="none">
+    <path d="M0,400 L0,300 Q200,100 400,250 Q600,50 800,200 Q1000,80 1200,180 Q1350,100 1440,200 L1440,400 Z" fill="#1A1A1A"/>
+  </svg>
+  <div class="slide-inner" style="align-items: center; text-align: center;">
+    <div class="anim-1 s-label">CONCLUSION</div>
+    <h2 class="anim-2 s-title" style="font-size: clamp(2rem, 4vw, 3.5rem);">三则结论</h2>
+    <div class="anim-brush ink-divider" style="margin: 16px auto;"></div>
+    <div class="grid-3 anim-3" style="margin-top: 32px; max-width: 1000px; text-align: left;">
+      <div class="ink-card" style="border-top: 3px solid var(--cinnabar);">
+        <div style="font-family: 'Ma Shan Zheng'; font-size: 2rem; color: var(--cinnabar); opacity: 0.3; margin-bottom: 8px;">壹</div>
+        <div style="font-weight: 600; font-size: 1rem; margin-bottom: 8px;">技术选型有效</div>
+        <p style="font-size: 0.82rem; color: var(--ink-mid); line-height: 1.7;">uni-app + 微信云开发的技术组合，在开发效率、运维成本、功能扩展性三个维度均满足预期。12/12 测试通过率验证。</p>
+      </div>
+      <div class="ink-card" style="border-top: 3px solid var(--indigo);">
+        <div style="font-family: 'Ma Shan Zheng'; font-size: 2rem; color: var(--indigo); opacity: 0.3; margin-bottom: 8px;">贰</div>
+        <div style="font-weight: 600; font-size: 1rem; margin-bottom: 8px;">语音导览体验优秀</div>
+        <p style="font-size: 0.82rem; color: var(--ink-mid); line-height: 1.7;">云函数代理架构将重计算卸载到服务端，语音导览维度得分 4.4/5，弥补了行业「无声音频」的短板。</p>
+      </div>
+      <div class="ink-card" style="border-top: 3px solid var(--jade);">
+        <div style="font-family: 'Ma Shan Zheng'; font-size: 2rem; color: var(--jade); opacity: 0.3; margin-bottom: 8px;">叁</div>
+        <div style="font-weight: 600; font-size: 1rem; margin-bottom: 8px;">持久化驱动留存</div>
+        <p style="font-size: 0.82rem; color: var(--ink-mid); line-height: 1.7;">云数据库 + 本地存储的双层策略，解决了「用过即忘」痛点。操作便捷性 4.5/5 为最高分。</p>
+      </div>
+    </div>
+    <!-- Future directions -->
+    <div class="anim-4" style="margin-top: 32px; max-width: 800px;">
+      <div style="font-size: 0.78rem; color: var(--ink-faint); letter-spacing: 0.15em; margin-bottom: 12px;">FUTURE DIRECTIONS</div>
+      <div class="flex-row" style="gap: 16px; justify-content: center; flex-wrap: wrap;">
+        <span class="tag tag-cinnabar">多语言语音导览</span>
+        <span class="tag tag-indigo">离线数据包</span>
+        <span class="tag tag-jade">AI 智能推荐</span>
+        <span class="tag tag-gold">AIGC 内容增强</span>
+        <span class="tag" style="border-color: var(--ink-faint); color: var(--ink-mid);">社区化运营</span>
+      </div>
+    </div>
+    <!-- Footer -->
+    <div class="anim-5" style="margin-top: 40px; display: flex; align-items: center; justify-content: center; gap: 20px;">
+      <div class="seal seal-sm" style="transform: none;">蜀</div>
+      <div style="font-family: 'ZCOOL XiaoWei', serif; font-size: 0.85rem; color: var(--ink-faint); letter-spacing: 0.1em;">
+        小蜀记 · 四川非遗文旅数字导览系统 · 2026
+      </div>
+      <div class="seal seal-sm" style="transform: none;">记</div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== SLIDE 12: CLOSING ==================== -->
+<div class="slide" data-index="11">
+  <!-- Mountain silhouette -->
+  <svg class="mountain-bg" viewBox="0 0 1440 400" preserveAspectRatio="none">
+    <path d="M0,400 L0,320 Q180,100 360,240 Q540,60 720,180 Q900,40 1080,160 Q1260,80 1440,220 L1440,400 Z" fill="#1A1A1A"/>
+    <path d="M0,400 L0,360 Q300,200 500,300 Q700,160 900,280 Q1100,200 1440,300 L1440,400 Z" fill="#2A2A2A" opacity="0.5"/>
+  </svg>
+  <div class="slide-inner" style="align-items: center; text-align: center; justify-content: center;">
+    <div class="anim-float" style="margin-bottom: 32px;">
+      <div class="seal" style="width: 88px; height: 88px; font-size: 1.8rem; transform: rotate(-5deg); margin: 0 auto;">蜀</div>
+    </div>
+    <h1 class="anim-2 s-title" style="font-size: clamp(3rem, 7vw, 5.5rem); letter-spacing: 0.2em; margin-bottom: 8px;">感谢聆听</h1>
+    <div class="anim-brush ink-divider" style="margin: 20px auto; width: 100px;"></div>
+    <p class="anim-3 s-subtitle" style="max-width: 500px; margin: 0 auto; line-height: 1.8;">
+      让每一份非遗文化，都被温柔地记住
+    </p>
+    <div class="anim-4" style="margin-top: 48px; display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;">
+      <span class="tag tag-cinnabar">uni-app</span>
+      <span class="tag tag-indigo">微信云开发</span>
+      <span class="tag tag-gold">百度 TTS</span>
+      <span class="tag tag-jade">腾讯地图</span>
+      <span class="tag" style="border-color: var(--ink-faint); color: var(--ink-mid);">Vue2</span>
+    </div>
+    <div class="anim-5 vertical-text" style="position: absolute; left: 40px; top: 50%; transform: translateY(-50%); font-size: 1.1rem; letter-spacing: 0.5em; color: var(--ink-faint);">
+      小蜀记·二〇二六
+    </div>
+    <div class="anim-5 vertical-text" style="position: absolute; right: 40px; top: 50%; transform: translateY(-50%) rotate(180deg); font-size: 1.1rem; letter-spacing: 0.5em; color: var(--ink-faint);">
+      非遗数字文旅导览
+    </div>
+    <div class="anim-6" style="margin-top: 48px; font-family: 'ZCOOL XiaoWei', serif; font-size: 0.8rem; color: var(--ink-faint); letter-spacing: 0.15em;">
+      成员 C · 核心功能开发 · 24068240217
+    </div>
+  </div>
+</div>
+
+</div><!-- /presentation -->
+
+<script>
+// ========== Ink Particle Canvas ==========
+(function() {
+  const canvas = document.getElementById('ink-canvas');
+  const ctx = canvas.getContext('2d');
+  let W, H, particles = [], mouseX = 0, mouseY = 0;
+
+  function resize() {
+    W = canvas.width = window.innerWidth;
+    H = canvas.height = window.innerHeight;
+  }
+  window.addEventListener('resize', resize);
+  resize();
+
+  document.addEventListener('mousemove', e => { mouseX = e.clientX; mouseY = e.clientY; });
+
+  class InkParticle {
+    constructor() { this.reset(); }
+    reset() {
+      this.x = Math.random() * W;
+      this.y = Math.random() * H;
+      this.r = Math.random() * 2.5 + 0.5;
+      this.vx = (Math.random() - 0.5) * 0.15;
+      this.vy = (Math.random() - 0.5) * 0.1;
+      this.alpha = Math.random() * 0.12 + 0.02;
+      this.life = Math.random() * 600 + 200;
+      this.age = 0;
+    }
+    update() {
+      this.age++;
+      if (this.age > this.life) { this.reset(); return; }
+      const dx = mouseX - this.x, dy = mouseY - this.y;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      if (dist < 200) {
+        this.vx += dx * 0.00003;
+        this.vy += dy * 0.00003;
+      }
+      this.x += this.vx;
+      this.y += this.vy;
+      this.vx *= 0.998;
+      this.vy *= 0.998;
+    }
+    draw() {
+      const fade = 1 - this.age / this.life;
+      ctx.beginPath();
+      ctx.arc(this.x, this.y, this.r, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(26,26,26,${this.alpha * fade})`;
+      ctx.fill();
+    }
+  }
+
+  for (let i = 0; i < 60; i++) particles.push(new InkParticle());
+
+  function drawInkBlobs() {
+    ctx.globalAlpha = 0.015;
+    const g1 = ctx.createRadialGradient(W * 0.1, H * 0.85, 0, W * 0.1, H * 0.85, 200);
+    g1.addColorStop(0, '#1A1A1A');
+    g1.addColorStop(1, 'transparent');
+    ctx.fillStyle = g1;
+    ctx.fillRect(0, H * 0.6, W * 0.4, H * 0.4);
+    const g2 = ctx.createRadialGradient(W * 0.9, H * 0.15, 0, W * 0.9, H * 0.15, 150);
+    g2.addColorStop(0, '#1A1A1A');
+    g2.addColorStop(1, 'transparent');
+    ctx.fillStyle = g2;
+    ctx.fillRect(W * 0.6, 0, W * 0.4, H * 0.4);
+    ctx.globalAlpha = 1;
+  }
+
+  function animate() {
+    ctx.clearRect(0, 0, W, H);
+    drawInkBlobs();
+    particles.forEach(p => { p.update(); p.draw(); });
+    requestAnimationFrame(animate);
+  }
+  animate();
+})();
+
+// ========== Ink Transition Effect ==========
+const InkTransition = (function() {
+  const canvas = document.getElementById('inkTransitionCanvas');
+  const ctx = canvas.getContext('2d');
+  let W, H;
+  let animating = false;
+
+  function resize() {
+    W = canvas.width = window.innerWidth;
+    H = canvas.height = window.innerHeight;
+  }
+  window.addEventListener('resize', resize);
+  resize();
+
+  // Ink splatter particles for transition
+  function createSplatter(cx, cy, count, color) {
+    const particles = [];
+    for (let i = 0; i < count; i++) {
+      const angle = Math.random() * Math.PI * 2;
+      const speed = Math.random() * 8 + 2;
+      particles.push({
+        x: cx, y: cy,
+        vx: Math.cos(angle) * speed,
+        vy: Math.sin(angle) * speed,
+        r: Math.random() * 12 + 3,
+        alpha: Math.random() * 0.25 + 0.1,
+        decay: Math.random() * 0.015 + 0.008,
+        color: color
+      });
+    }
+    return particles;
+  }
+
+  function play(direction) {
+    if (animating) return;
+    animating = true;
+
+    const fromX = direction > 0 ? W * 0.9 : W * 0.1;
+    const fromY = H * 0.5;
+    const toX = direction > 0 ? W * 0.1 : W * 0.9;
+    const toY = H * 0.5;
+
+    const splatters = createSplatter(fromX, fromY, 20, '#1A1A1A');
+    let progress = 0;
+    const duration = 600; // ms
+    const startTime = performance.now();
+
+    function animate(now) {
+      const elapsed = now - startTime;
+      progress = Math.min(elapsed / duration, 1);
+
+      ctx.clearRect(0, 0, W, H);
+
+      // Ink brush stroke (main diagonal)
+      const ease = 1 - Math.pow(1 - progress, 3); // easeOutCubic
+      const p = ease;
+
+      // Main ink band sweeping across
+      const bandX = fromX + (toX - fromX) * p;
+      const gradient = ctx.createRadialGradient(bandX, toY, 0, bandX, toY, Math.max(W, H) * 0.5);
+
+      if (progress < 0.4) {
+        // Ink expanding
+        gradient.addColorStop(0, `rgba(26,26,26,${0.12 * (progress / 0.4)})`);
+        gradient.addColorStop(0.5, `rgba(26,26,26,${0.06 * (progress / 0.4)})`);
+        gradient.addColorStop(1, 'transparent');
+      } else if (progress < 0.7) {
+        // Ink at peak
+        gradient.addColorStop(0, 'rgba(26,26,26,0.12)');
+        gradient.addColorStop(0.5, 'rgba(26,26,26,0.06)');
+        gradient.addColorStop(1, 'transparent');
+      } else {
+        // Ink fading
+        const fade = 1 - (progress - 0.7) / 0.3;
+        gradient.addColorStop(0, `rgba(26,26,26,${0.12 * fade})`);
+        gradient.addColorStop(0.5, `rgba(26,26,26,${0.06 * fade})`);
+        gradient.addColorStop(1, 'transparent');
+      }
+      ctx.fillStyle = gradient;
+      ctx.fillRect(0, 0, W, H);
+
+      // Ink splatters
+      splatters.forEach(s => {
+        s.x += s.vx;
+        s.y += s.vy;
+        s.vx *= 0.96;
+        s.vy *= 0.96;
+        s.alpha -= s.decay;
+        if (s.alpha > 0) {
+          ctx.beginPath();
+          ctx.arc(s.x, s.y, Math.max(0.5, s.r * (s.alpha / 0.25)), 0, Math.PI * 2);
+          ctx.fillStyle = `rgba(26,26,26,${s.alpha})`;
+          ctx.fill();
+        }
+      });
+
+      // Ink brush line
+      if (progress < 0.6) {
+        const lineAlpha = progress < 0.3 ? progress / 0.3 : (0.6 - progress) / 0.3;
+        ctx.beginPath();
+        ctx.moveTo(fromX, fromY - H * 0.4);
+        ctx.quadraticCurveTo(
+          (fromX + toX) / 2, toY + (Math.random() - 0.5) * 40,
+          fromX + (toX - fromX) * Math.min(p * 1.5, 1), toY + H * 0.4
+        );
+        ctx.strokeStyle = `rgba(26,26,26,${0.08 * lineAlpha})`;
+        ctx.lineWidth = Math.random() * 2 + 1;
+        ctx.stroke();
+      }
+
+      if (progress < 1) {
+        requestAnimationFrame(animate);
+      } else {
+        ctx.clearRect(0, 0, W, H);
+        animating = false;
+      }
+    }
+
+    requestAnimationFrame(animate);
+  }
+
+  return { play };
+})();
+
+// ========== Navigation System ==========
+(function() {
+  const slides = document.querySelectorAll('.slide');
+  const dotsContainer = document.getElementById('navDots');
+  const counter = document.getElementById('pageCounter');
+  const chapterLabel = document.getElementById('chapterLabel');
+  const progressBar = document.getElementById('progressBar');
+  const progressBarFill = document.getElementById('progressBarFill');
+  const shortcutsPanel = document.getElementById('shortcutsPanel');
+  const clickZonePrev = document.getElementById('clickZonePrev');
+  const clickZoneNext = document.getElementById('clickZoneNext');
+  let current = 0, isTransitioning = false;
+  const total = slides.length;
+  const TRANSITION_DURATION = 850;
+
+  // Chapter definitions: [startIndex, label]
+  const chapters = [
+    [0, '封面'],
+    [1, '痛点分析'],
+    [2, '用户与竞品'],
+    [3, '技术选型'],
+    [4, '系统架构'],
+    [5, '语音导览'],
+    [6, '数据持久化'],
+    [7, '云函数'],
+    [8, '测试结果'],
+    [9, '用户满意度'],
+    [10, '结论与展望'],
+    [11, '结语']
+  ];
+
+  function getChapter(index) {
+    for (let i = chapters.length - 1; i >= 0; i--) {
+      if (index >= chapters[i][0]) return chapters[i][1];
+    }
+    return chapters[0][1];
+  }
+
+  // Create dots with chapter group labels
+  let lastChapterStart = 0;
+  for (let i = 0; i < total; i++) {
+    // Insert chapter label before first dot of each new chapter (except the very first)
+    if (i > 0 && getChapter(i) !== getChapter(i - 1)) {
+      const label = document.createElement('div');
+      label.className = 'nav-dot-group-label';
+      label.textContent = getChapter(i);
+      dotsContainer.appendChild(label);
+    }
+    const dot = document.createElement('div');
+    dot.className = 'nav-dot' + (i === 0 ? ' active' : '');
+    dot.title = (i + 1) + '. ' + getChapter(i);
+    dot.addEventListener('click', () => goTo(i));
+    dotsContainer.appendChild(dot);
+  }
+
+  function updateUI() {
+    // Update dots
+    dotsContainer.querySelectorAll('.nav-dot').forEach((d, i) => {
+      d.classList.toggle('active', i === current);
+    });
+    // Update counter
+    counter.textContent = String(current + 1).padStart(2, '0') + ' / ' + String(total).padStart(2, '0');
+    // Update progress bar
+    const progress = total > 1 ? (current / (total - 1)) * 100 : 0;
+    progressBarFill.style.width = progress + '%';
+    // Update chapter label
+    chapterLabel.textContent = getChapter(current);
+    // Update click zone disabled state
+    clickZonePrev.classList.toggle('disabled', current === 0);
+    clickZoneNext.classList.toggle('disabled', current === total - 1);
+    // Update body class for theming (cover & closing slides)
+    document.body.classList.toggle('dark-slide', current === 0 || current === total - 1);
+    // Animate bars on satisfaction slide
+    if (current === 9) animateBars();
+    // Reset bars when leaving satisfaction slide
+    if (current !== 9) {
+      document.querySelectorAll('#presentation .slide[data-index="9"] .bar-fill').forEach(bar => {
+        bar.style.width = '0';
+      });
+    }
+  }
+
+  function goTo(index) {
+    if (isTransitioning || index === current || index < 0 || index >= total) return;
+    isTransitioning = true;
+    const direction = index > current ? 1 : -1;
+    const prevIndex = current;
+    const prevSlide = slides[prevIndex];
+    const nextSlide = slides[index];
+
+    current = index;
+
+    // Trigger ink transition animation
+    InkTransition.play(direction);
+
+    // Clean up any leftover inline styles on next slide
+    nextSlide.style.transition = 'none';
+    nextSlide.style.transform = `translateX(${60 * direction}px)`;
+    nextSlide.style.opacity = '0';
+    nextSlide.classList.remove('active', 'prev');
+    // Force reflow to apply starting position
+    nextSlide.offsetHeight;
+
+    // Add active class NOW so that when inline styles are cleared later,
+    // .active { opacity:1; transform:translateX(0) } takes over.
+    // Inline styles still have higher specificity during animation.
+    nextSlide.classList.add('active');
+
+    // Animate next slide in
+    nextSlide.style.transition = '';
+    nextSlide.style.transform = 'translateX(0)';
+    nextSlide.style.opacity = '1';
+
+    // Animate prev slide out
+    prevSlide.classList.remove('active');
+    prevSlide.classList.add('prev');
+    prevSlide.style.transform = `translateX(${-60 * direction}px)`;
+    prevSlide.style.opacity = '0';
+
+    updateUI();
+    setTimeout(() => {
+      // Clean up inline styles after transition
+      prevSlide.style.transition = 'none';
+      prevSlide.style.transform = '';
+      prevSlide.style.opacity = '';
+      prevSlide.classList.remove('prev');
+      nextSlide.style.transform = '';
+      nextSlide.style.opacity = '';
+      isTransitioning = false;
+    }, TRANSITION_DURATION);
+  }
+
+  function next() { goTo(current + 1); }
+  function prev() { goTo(current - 1); }
+
+  // ========== Keyboard ==========
+  let shortcutsVisible = false;
+  document.addEventListener('keydown', e => {
+    // Ignore if user is typing in an input
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+
+    // Toggle shortcuts panel with ? or /
+    if (e.key === '?' || (e.key === '/' && !e.shiftKey)) {
+      e.preventDefault();
+      shortcutsVisible = !shortcutsVisible;
+      shortcutsPanel.classList.toggle('visible', shortcutsVisible);
+      return;
+    }
+
+    // Close shortcuts panel on Escape (if visible), otherwise go to first slide
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      if (shortcutsVisible) {
+        shortcutsVisible = false;
+        shortcutsPanel.classList.remove('visible');
+      } else {
+        goTo(0);
+      }
+      return;
+    }
+
+    // Navigation
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === ' ') {
+      e.preventDefault(); next();
+    }
+    if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+      e.preventDefault(); prev();
+    }
+    if (e.key === 'Home') { e.preventDefault(); goTo(0); }
+    if (e.key === 'End') { e.preventDefault(); goTo(total - 1); }
+
+    // Number keys: 1-9 jump to that page (1-indexed), 0 jumps to last
+    if (e.key >= '1' && e.key <= '9' && !e.ctrlKey && !e.altKey && !e.metaKey) {
+      e.preventDefault();
+      const target = parseInt(e.key) - 1;
+      if (target < total) goTo(target);
+    }
+    if (e.key === '0' && !e.ctrlKey && !e.altKey && !e.metaKey) {
+      e.preventDefault();
+      goTo(total - 1);
+    }
+
+    // Fullscreen toggle with F
+    if (e.key === 'f' || e.key === 'F') {
+      if (!e.ctrlKey && !e.altKey && !e.metaKey) {
+        e.preventDefault();
+        if (!document.fullscreenElement) {
+          document.documentElement.requestFullscreen().catch(() => {});
+        } else {
+          document.exitFullscreen().catch(() => {});
+        }
+      }
+    }
+
+    // Page Up / Page Down
+    if (e.key === 'PageDown') { e.preventDefault(); next(); }
+    if (e.key === 'PageUp') { e.preventDefault(); prev(); }
+  });
+
+  // ========== Wheel (with debounce & direction accumulation) ==========
+  let wheelAccumulator = 0;
+  let wheelTimer = null;
+  const WHEEL_THRESHOLD = 30; // minimum accumulated delta to trigger
+  const WHEEL_COOLDOWN = 600; // ms cooldown after a page change
+
+  document.addEventListener('wheel', e => {
+    if (isTransitioning) return;
+
+    // Accumulate direction
+    wheelAccumulator += e.deltaY;
+
+    // Clear existing timer
+    if (wheelTimer) clearTimeout(wheelTimer);
+
+    // Set new timer: after 150ms of no new wheel events, check threshold
+    wheelTimer = setTimeout(() => {
+      if (isTransitioning) { wheelAccumulator = 0; return; }
+
+      if (Math.abs(wheelAccumulator) >= WHEEL_THRESHOLD) {
+        if (wheelAccumulator > 0) next();
+        else prev();
+        wheelAccumulator = 0;
+      } else {
+        wheelAccumulator = 0; // reset if threshold not met
+      }
+    }, 120);
+  }, { passive: true });
+
+  // ========== Touch (with velocity detection) ==========
+  let touchStartX = 0, touchStartY = 0, touchStartTime = 0;
+
+  document.addEventListener('touchstart', e => {
+    if (e.touches.length !== 1) return;
+    touchStartX = e.touches[0].clientX;
+    touchStartY = e.touches[0].clientY;
+    touchStartTime = Date.now();
+  }, { passive: true });
+
+  document.addEventListener('touchend', e => {
+    if (isTransitioning || e.changedTouches.length !== 1) return;
+    const dx = e.changedTouches[0].clientX - touchStartX;
+    const dy = e.changedTouches[0].clientY - touchStartY;
+    const dt = Date.now() - touchStartTime;
+    const velocity = Math.abs(dx) / dt; // px/ms
+
+    // Must be horizontal swipe: either wide enough OR fast enough
+    const isHorizontal = Math.abs(dx) > Math.abs(dy);
+    const isWideEnough = Math.abs(dx) > 50;
+    const isFastEnough = velocity > 0.3 && Math.abs(dx) > 20;
+
+    if (isHorizontal && (isWideEnough || isFastEnough)) {
+      dx < 0 ? next() : prev();
+    }
+  }, { passive: true });
+
+  // Prevent rapid multi-touch from causing issues
+  document.addEventListener('touchmove', e => {
+    if (isTransitioning && e.cancelable) e.preventDefault();
+  }, { passive: false });
+
+  // ========== Progress Bar Click ==========
+  progressBar.addEventListener('click', e => {
+    const rect = progressBar.getBoundingClientRect();
+    const ratio = (e.clientX - rect.left) / rect.width;
+    const target = Math.round(ratio * (total - 1));
+    if (target >= 0 && target < total && target !== current) {
+      goTo(target);
+    }
+  });
+
+  // ========== Bar animation ==========
+  function animateBars() {
+    setTimeout(() => {
+      document.querySelectorAll('#presentation .slide[data-index="9"] .bar-fill').forEach(bar => {
+        bar.style.width = bar.dataset.width + '%';
+      });
+    }, 400);
+  }
+
+  // ========== Click Zone Navigation ==========
+  clickZonePrev.addEventListener('click', () => prev());
+  clickZoneNext.addEventListener('click', () => next());
+
+  // ========== Click outside shortcuts panel to close ==========
+  document.addEventListener('click', e => {
+    if (shortcutsVisible && !shortcutsPanel.contains(e.target)) {
+      shortcutsVisible = false;
+      shortcutsPanel.classList.remove('visible');
+    }
+  });
+
+  // Initial state
+  updateUI();
+})();
+</script>
+</body>
+</html>

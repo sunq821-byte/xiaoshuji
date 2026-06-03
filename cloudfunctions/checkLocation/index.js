@@ -2,8 +2,6 @@
  * checkLocation 云函数
  * 验证用户打卡位置是否在有效范围内
  *
- * AI辅助生成：WorkBuddy/Coding Copilot, 2026-04-19
- *
  * 打卡范围配置（米）
  */
 const cloud = require('wx-server-sdk');

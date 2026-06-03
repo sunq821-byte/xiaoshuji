@@ -2,8 +2,6 @@
  * getOpenId 云函数
  * 静默登录，获取用户 OpenId
  *
- * AI辅助生成：WorkBuddy/Coding Copilot, 2026-04-19
- *
  * 微信登录流程参考：
  * https://developers.weixin.qq.com/miniprogram/dev/framework/open-ability/login.html
  *

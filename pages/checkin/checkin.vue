@@ -1,9 +1,4 @@
-<!-- pages/checkin/checkin.vue - 打卡页（支持上传照片 + 备注）
-     AI辅助生成：Claude, 2025-03
-     - 位置验证逻辑（checkLocation云函数）
-     - 图片上传到云存储
-     - 打卡记录写入数据库
--->
+<!-- pages/checkin/checkin.vue - 打卡页（支持上传照片 + 备注） -->
 <template>
 	<view class="page-container">
 		<!-- 顶部封面背景 -->

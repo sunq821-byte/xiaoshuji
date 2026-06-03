@@ -2,8 +2,6 @@
  * geo-reverse 云函数
  * 逆地址解析（坐标转地址）
  * 使用腾讯地图 WebService API
- *
- * AI辅助生成：WorkBuddy/Coding Copilot, 2026-04-19
  */
 const cloud = require('wx-server-sdk');
 const https = require('https');

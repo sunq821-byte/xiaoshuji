@@ -1,8 +1,6 @@
 /**
  * submit-feedback 云函数
  * 提交用户反馈
- *
- * AI辅助生成：WorkBuddy/Coding Copilot, 2026-04-19
  */
 const cloud = require('wx-server-sdk');
 

@@ -1,10 +1,6 @@
 /**
  * 云函数名称统一导出
  * 所有云函数名称在此集中管理，方便维护和修改
- *
- * AI辅助生成/修复：WorkBuddy/Coding Copilot, 2026-04-19
- * - 修复getFavoriteList传参格式（{targetType} → {filter:{targetType}}）
- * - 统一云函数调用封装
  */
 
 import { CLOUD_FUNCTIONS } from '../config.js'
@@ -23,7 +19,6 @@ export default {
   // 打卡相关
   checkinSubmit: () => CLOUD_FUNCTIONS.checkinSubmit,
   checkLocation: () => CLOUD_FUNCTIONS.checkLocation,
-  addCheckin: () => CLOUD_FUNCTIONS.addCheckin,
   getMyCheckin: () => CLOUD_FUNCTIONS.getMyCheckin,
   
   // 语音相关
@@ -34,9 +29,6 @@ export default {
   
   // 路线相关
   getRoutes: () => CLOUD_FUNCTIONS.getRoutes,
-  
-  // AR相关
-  getARResult: () => CLOUD_FUNCTIONS.getARResult,
 
   // 反馈相关
   submitFeedback: () => CLOUD_FUNCTIONS.submitFeedback,
@@ -109,7 +101,7 @@ export const cloudFn = {
   
   // 提交打卡
   async submitCheckin(data) {
-    return callCloud(CLOUD_FUNCTIONS.addCheckin, data)
+    return callCloud(CLOUD_FUNCTIONS.checkinSubmit, data)
   },
   
   // 获取打卡记录
@@ -117,11 +109,6 @@ export const cloudFn = {
     return callCloud(CLOUD_FUNCTIONS.getMyCheckin, params)
   },
   
-  // AR识别结果
-  async getARResult(target, type, id) {
-    return callCloud(CLOUD_FUNCTIONS.getARResult, { target, type, id })
-  },
-
   // 提交反馈
   async submitFeedback(data) {
     return callCloud(CLOUD_FUNCTIONS.submitFeedback, data)

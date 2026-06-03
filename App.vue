@@ -1,14 +1,12 @@
 <!-- App.vue -->
-<!-- AI辅助生成：WorkBuddy/Coding Copilot, 2026-04-08
-     - 设计令牌CSS变量（川味配色、深色模式支持）
-     - 全局错误处理逻辑
--->
 <script>
 	import { CLOUD_CONFIG } from './config.js'
 	import { silentLogin } from './utils/auth.js'
 	import Vue from 'vue'
 
 	Vue.config.errorHandler = (err, vm, info) => {
+			// 这玩意儿在生产环境有时候err.message直接是空的，不太好排查
+			// 后面考虑接个真正的监控，目前先凑合用吧
 		console.error('全局错误:', err)
 		console.error('错误信息:', info)
 
@@ -34,6 +32,8 @@
 			console.log('版本信息:', '四川非遗文旅数字导览 v1.0.0')
 
 			// 初始化云开发环境
+				// 注意：config.js的env如果填错了不会报错，只是查不到数据
+				// 之前帮同学排查这个问题浪费了半天……
 			if (wx.cloud) {
 				wx.cloud.init({
 					env: CLOUD_CONFIG.env,

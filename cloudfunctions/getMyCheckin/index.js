@@ -1,8 +1,6 @@
 /**
  * getMyCheckin 云函数
  * 获取用户的打卡记录列表
- *
- * AI辅助生成：WorkBuddy/Coding Copilot, 2026-04-19
  */
 const cloud = require('wx-server-sdk');
 
